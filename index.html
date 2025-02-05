@@ -2,6 +2,7 @@
 <button type="button" onclick="init()">Start</button>
 <div id="webcam-container"></div>
 <div id="label-container"></div>
+<div id="emoji-container" style="font-size: 5rem; text-align: center; margin-top: 20px;"></div>
 <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest/dist/tf.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@latest/dist/teachablemachine-image.min.js"></script>
 <script type="text/javascript">
@@ -48,12 +49,44 @@
 
     // run the webcam image through the image model
     async function predict() {
-        // predict can take in an image, video or canvas html element
         const prediction = await model.predict(webcam.canvas);
+        let highestPrediction = { className: '', probability: 0 };
+
         for (let i = 0; i < maxPredictions; i++) {
-            const classPrediction =
-                prediction[i].className + ": " + prediction[i].probability.toFixed(2);
+            const classPrediction = prediction[i].className + ": " + prediction[i].probability.toFixed(2);
             labelContainer.childNodes[i].innerHTML = classPrediction;
+
+            // Bepaal de voorspelling met de hoogste waarschijnlijkheid
+            if (prediction[i].probability > highestPrediction.probability) {
+                highestPrediction = prediction[i];
+            }
+        }
+
+        // Toon de juiste emoji op basis van de voorspelling
+        const emojiContainer = document.getElementById('emoji-container');
+        if (highestPrediction.className.toLowerCase() === 'thumbs up' && highestPrediction.probability > 0.8) {
+            emojiContainer.innerHTML = '😊';
+        } else if (highestPrediction.className.toLowerCase() === 'thumbs down' && highestPrediction.probability > 0.8) {
+            emojiContainer.innerHTML = '😢';
+        } else {
+            emojiContainer.innerHTML = ''; // Leeg als geen duidelijke voorspelling
         }
     }
+
 </script>
+
+<style>
+    #emoji-container {
+        transition: transform 0.3s ease-in-out;
+    }
+
+    #emoji-container:empty {
+        transform: scale(0);
+    }
+
+    #emoji-container:not(:empty) {
+        transform: scale(1.2);
+    }
+
+
+</style>
