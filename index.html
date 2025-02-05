@@ -7,6 +7,17 @@
 <!-- Confetti Library toevoegen -->
 <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
 
+<!-- Test of confetti werkt bij paginalaad -->
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        confetti({
+            particleCount: 100,
+            spread: 60,
+            origin: { y: 0.6 }
+        });
+    });
+</script>
+
 <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest/dist/tf.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@latest/dist/teachablemachine-image.min.js"></script>
 
@@ -14,7 +25,7 @@
     const URL = "./my_model/";
 
     let model, webcam, labelContainer, maxPredictions;
-    let confettiTriggered = false; // Om te voorkomen dat confetti continu blijft afgaan
+    let confettiTriggered = false;
 
     async function init() {
         const modelURL = URL + "model.json";
@@ -55,93 +66,41 @@
             }
         }
 
+        // Debug log om te checken wat het model voorspelt
+        console.log("Voorspelling:", highestPrediction.className, highestPrediction.probability);
+
         const emojiContainer = document.getElementById('emoji-container');
 
         if (highestPrediction.className.toLowerCase() === 'thumbs up' && highestPrediction.probability > 0.8) {
             emojiContainer.innerHTML = '😊';
 
-            // Confetti starten als het nog niet getriggerd is
             if (!confettiTriggered) {
                 confettiTriggered = true;
                 startConfetti();
             }
         } else if (highestPrediction.className.toLowerCase() === 'thumbs down' && highestPrediction.probability > 0.8) {
             emojiContainer.innerHTML = '😢';
-            confettiTriggered = false; // Reset zodat confetti weer getriggerd kan worden bij een nieuwe thumbs up
+            confettiTriggered = false;
         } else {
             emojiContainer.innerHTML = '';
             confettiTriggered = false;
         }
     }
 
-    // Confetti functie
     function startConfetti() {
-        confetti({
-            particleCount: 150,
-            spread: 70,
-            origin: { y: 0.6 }
-        });
+        const duration = 3 * 1000;
+        const end = Date.now() + duration;
+
+        (function frame() {
+            confetti({
+                particleCount: 5,
+                spread: 90,
+                origin: { y: 0.3 }
+            });
+
+            if (Date.now() < end) {
+                requestAnimationFrame(frame);
+            }
+        })();
     }
 </script>
-
-<style>
-    body {
-        font-family: Arial, sans-serif;
-        background-color: #f0f4f8;
-        text-align: center;
-        padding: 20px;
-        margin: 0;
-    }
-
-    .header {
-        font-size: 2rem;
-        font-weight: bold;
-        color: #333;
-        margin-bottom: 20px;
-    }
-
-    button {
-        background-color: #4CAF50;
-        color: white;
-        padding: 10px 20px;
-        font-size: 1rem;
-        border: none;
-        border-radius: 5px;
-        cursor: pointer;
-        transition: background-color 0.3s ease;
-    }
-
-    button:hover {
-        background-color: #45a049;
-    }
-
-    #webcam-container {
-        margin: 20px auto;
-        border: 4px solid #4CAF50;
-        border-radius: 10px;
-        width: fit-content;
-    }
-
-    #label-container {
-        margin-top: 20px;
-        font-size: 1.2rem;
-        color: #555;
-    }
-
-    #emoji-container {
-        font-size: 5rem;
-        margin-top: 20px;
-        height: 5rem;
-        transition: transform 0.3s ease-in-out, opacity 0.3s ease-in-out;
-        opacity: 0;
-    }
-
-    #emoji-container:not(:empty) {
-        transform: scale(1.2);
-        opacity: 1;
-    }
-
-    #emoji-container:empty {
-        transform: scale(0);
-    }
-</style>
