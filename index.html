@@ -4,6 +4,9 @@
 <div id="label-container"></div>
 <div id="emoji-container"></div>
 
+<!-- Confetti Library toevoegen -->
+<script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
 <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest/dist/tf.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@latest/dist/teachablemachine-image.min.js"></script>
 
@@ -11,6 +14,7 @@
     const URL = "./my_model/";
 
     let model, webcam, labelContainer, maxPredictions;
+    let confettiTriggered = false; // Om te voorkomen dat confetti continu blijft afgaan
 
     async function init() {
         const modelURL = URL + "model.json";
@@ -52,13 +56,31 @@
         }
 
         const emojiContainer = document.getElementById('emoji-container');
+
         if (highestPrediction.className.toLowerCase() === 'thumbs up' && highestPrediction.probability > 0.8) {
             emojiContainer.innerHTML = '😊';
+
+            // Confetti starten als het nog niet getriggerd is
+            if (!confettiTriggered) {
+                confettiTriggered = true;
+                startConfetti();
+            }
         } else if (highestPrediction.className.toLowerCase() === 'thumbs down' && highestPrediction.probability > 0.8) {
             emojiContainer.innerHTML = '😢';
+            confettiTriggered = false; // Reset zodat confetti weer getriggerd kan worden bij een nieuwe thumbs up
         } else {
             emojiContainer.innerHTML = '';
+            confettiTriggered = false;
         }
+    }
+
+    // Confetti functie
+    function startConfetti() {
+        confetti({
+            particleCount: 150,
+            spread: 70,
+            origin: { y: 0.6 }
+        });
     }
 </script>
 
