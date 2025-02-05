@@ -3,20 +3,117 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Voorbeeld</title>
-    <!-- JavaScript-bestand toevoegen -->
-    <script src="draw.js" defer></script>
+    <title>Handherkenning met Mediapipe</title>
+    <style>
+        .videoView {
+            position: relative;
+        }
+        #output_canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+        }
+    </style>
 </head>
 <body>
-<h1>Handpose detection</h1>
-<button id="webcamButton">STARTWEBCAM</button>
-<button id="logButton">LOG DATA</button>
+<h1>Handherkenning Demo</h1>
+
+<!-- Knoppen voor bediening -->
+<button id="webcamButton">Start Webcam</button>
+<button id="logButton">Log Handcoördinaten</button>
+
+<!-- Video- en canvasweergave -->
 <div class="videoView">
-    <div style="position: relative;">
-        <video id="webcam" style="position: absolute;" muted autoplay playsinline></video>
-        <canvas id="output_canvas" style="position: absolute; left: 0px; top: 0px;"></canvas>
-    </div>
+    <video id="webcam" autoplay playsinline></video>
+    <canvas id="output_canvas"></canvas>
 </div>
+
+<!-- Laad het JavaScript-bestand als module -->
+<script type="module">
+    import { HandLandmarker, FilesetResolver, DrawingUtils } from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.18";
+
+    const logButton = document.getElementById("logButton");
+    const enableWebcamButton = document.getElementById("webcamButton");
+    const video = document.getElementById("webcam");
+    const canvasElement = document.getElementById("output_canvas");
+    const canvasCtx = canvasElement.getContext("2d");
+
+    const drawUtils = new DrawingUtils(canvasCtx);
+    let handLandmarker = undefined;
+    let webcamRunning = false;
+    let results = undefined;
+
+    /********************************************************************
+     // CREATE THE HAND LANDMARKER
+     ********************************************************************/
+    const createHandLandmarker = async () => {
+        const vision = await FilesetResolver.forVisionTasks("https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.0/wasm");
+        handLandmarker = await HandLandmarker.createFromOptions(vision, {
+            baseOptions: {
+                modelAssetPath: `https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task`,
+                delegate: "GPU"
+            },
+            runningMode: "VIDEO",
+            numHands: 2
+        });
+        console.log("Model geladen, je kunt nu de webcam starten.");
+        if (hasGetUserMedia()) {
+            enableWebcamButton.addEventListener("click", (e) => enableCam(e));
+            logButton.addEventListener("click", (e) => logAllHands(e));
+        }
+    };
+
+    const hasGetUserMedia = () => !!navigator.mediaDevices?.getUserMedia;
+
+    /********************************************************************
+     // START THE WEBCAM
+     ********************************************************************/
+    function enableCam() {
+        webcamRunning = true;
+        navigator.mediaDevices.getUserMedia({ video: true, audio: false }).then((stream) => {
+            video.srcObject = stream;
+            video.addEventListener("loadeddata", () => {
+                canvasElement.style.width = video.videoWidth + "px";
+                canvasElement.style.height = video.videoHeight + "px";
+                canvasElement.width = video.videoWidth;
+                canvasElement.height = video.videoHeight;
+                document.querySelector(".videoView").style.height = video.videoHeight + "px";
+                predictWebcam();
+            });
+        });
+    }
+
+    /********************************************************************
+     // START PREDICTIONS
+     ********************************************************************/
+    async function predictWebcam() {
+        results = await handLandmarker.detectForVideo(video, performance.now());
+
+        canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height);
+        for (let hand of results.landmarks) {
+            drawUtils.drawConnectors(hand, HandLandmarker.HAND_CONNECTIONS, { color: "#00FF00", lineWidth: 5 });
+            drawUtils.drawLandmarks(hand, { radius: 4, color: "#FF0000", lineWidth: 2 });
+        }
+
+        if (webcamRunning) {
+            window.requestAnimationFrame(predictWebcam);
+        }
+    }
+
+    /********************************************************************
+     // LOG HAND COORDINATES IN THE CONSOLE
+     ********************************************************************/
+    function logAllHands() {
+        if (results && results.landmarks) {
+            for (let hand of results.landmarks) {
+                console.log(hand);
+            }
+        } else {
+            console.log("Geen handen gedetecteerd.");
+        }
+    }
+
+    createHandLandmarker();
+</script>
 </body>
 </html>
-

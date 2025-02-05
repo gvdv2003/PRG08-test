@@ -13,6 +13,8 @@ let webcamRunning = false;
 let lastVideoTime = -1;
 let results = undefined;
 
+
+
 /********************************************************************
  // CREATE THE POSE DETECTOR
  ********************************************************************/
