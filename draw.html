@@ -147,7 +147,6 @@
             });
         });
     }
-
     /********************************************************************
      // PREDICT HANDS AND DRAW SPLATOON EFFECT (met pols als centrum)
      ********************************************************************/
@@ -156,7 +155,8 @@
 
         if (results.landmarks) {
             results.landmarks.forEach((hand, index) => {
-                const color = handColors[index % handColors.length];
+                // Geef de eerste hand altijd roze en de tweede hand altijd turquoise
+                const color = (index === 0) ? "#FF69B4" : "#40E0D0"; // Roze voor links, turquoise voor rechts
 
                 // De pols is meestal het eerste punt in de hand landmarks
                 const wrist = hand[0]; // Pols is altijd het eerste punt
@@ -180,6 +180,7 @@
             });
         }
 
+        // Zorg ervoor dat we door blijven gaan met het voorspellen van de handen
         if (webcamRunning) {
             window.requestAnimationFrame(predictWebcam);
         }
@@ -194,7 +195,9 @@
         previousPositions[1] = {};
     }
 
-    createHandLandmarker();
+    createHandLandmarker();  // Deze functie wordt eenmaal aangeroepen om alles te initialiseren
+
+
 </script>
 </body>
 </html>
