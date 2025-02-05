@@ -104,3 +104,65 @@
         })();
     }
 </script>
+
+<style>
+    body {
+        font-family: Arial, sans-serif;
+        background-color: #f0f4f8;
+        text-align: center;
+        padding: 20px;
+        margin: 0;
+    }
+
+    .header {
+        font-size: 2rem;
+        font-weight: bold;
+        color: #333;
+        margin-bottom: 20px;
+    }
+
+    button {
+        background-color: #4CAF50;
+        color: white;
+        padding: 10px 20px;
+        font-size: 1rem;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        transition: background-color 0.3s ease;
+    }
+
+    button:hover {
+        background-color: #45a049;
+    }
+
+    #webcam-container {
+        margin: 20px auto;
+        border: 4px solid #4CAF50;
+        border-radius: 10px;
+        width: fit-content;
+    }
+
+    #label-container {
+        margin-top: 20px;
+        font-size: 1.2rem;
+        color: #555;
+    }
+
+    #emoji-container {
+        font-size: 5rem;
+        margin-top: 20px;
+        height: 5rem;
+        transition: transform 0.3s ease-in-out, opacity 0.3s ease-in-out;
+        opacity: 0;
+    }
+
+    #emoji-container:not(:empty) {
+        transform: scale(1.2);
+        opacity: 1;
+    }
+
+    #emoji-container:empty {
+        transform: scale(0);
+    }
+</style>
