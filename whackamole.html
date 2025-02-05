@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Whack-a-Mole met Handgebaren</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #4facfe, #00f2fe);
+            color: #fff;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            text-align: center;
+            overflow: hidden;
+        }
+
+        h1 {
+            font-size: 3em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 5px rgba(0, 0, 0, 0.3);
+        }
+
+        #score {
+            font-size: 1.5em;
+            margin-bottom: 20px;
+        }
+
+        button, .back-button {
+            background: linear-gradient(45deg, #ff416c, #ff4b2b);
+            border: none;
+            border-radius: 8px;
+            color: white;
+            font-size: 1.2em;
+            padding: 15px 30px;
+            margin: 10px;
+            cursor: pointer;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        button:hover, .back-button:hover {
+            transform: scale(1.1);
+            box-shadow: 0 8px 12px rgba(0, 0, 0, 0.4);
+        }
+
+        .videoView {
+            position: relative;
+            display: inline-block;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        #webcam {
+            transform: scaleX(-1);
+            display: block;
+            border-radius: 10px;
+        }
+
+        #gameCanvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            pointer-events: none;
+            border-radius: 10px;
+        }
+    </style>
+</head>
+<body>
+<div>
+    <h1>Whack-a-Mole met Handgebaren</h1>
+    <div id="score">Score: 0</div>
+
+    <div>
+        <button id="startButton">Start Spel</button>
+        <a href="index.html" class="back-button">Terug naar Home</a>
+    </div>
+
+    <div class="videoView">
+        <video id="webcam" autoplay playsinline></video>
+        <canvas id="gameCanvas"></canvas>
+    </div>
+</div>
+
+<script type="module">
+    import { HandLandmarker, FilesetResolver } from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.18";
+
+    const startButton = document.getElementById("startButton");
+    const video = document.getElementById("webcam");
+    const canvasElement = document.getElementById("gameCanvas");
+    const canvasCtx = canvasElement.getContext("2d");
+    const scoreDisplay = document.getElementById("score");
+
+    let handLandmarker, webcamRunning = false, score = 0;
+    let mole = { x: 0, y: 0, size: 50, visible: false }; // Mollen kleiner gemaakt
+
+    const createHandLandmarker = async () => {
+        const vision = await FilesetResolver.forVisionTasks("https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.0/wasm");
+        handLandmarker = await HandLandmarker.createFromOptions(vision, {
+            baseOptions: {
+                modelAssetPath: `https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task`,
+                delegate: "GPU"
+            },
+            runningMode: "VIDEO",
+            numHands: 1
+        });
+    };
+
+    function startGame() {
+        navigator.mediaDevices.getUserMedia({ video: true }).then((stream) => {
+            video.srcObject = stream;
+            video.addEventListener("loadeddata", () => {
+                canvasElement.width = video.videoWidth;
+                canvasElement.height = video.videoHeight;
+                webcamRunning = true;
+                score = 0;
+                spawnMole();
+                gameLoop();
+            });
+        });
+    }
+
+    function spawnMole() {
+        mole.x = Math.random() * (canvasElement.width - mole.size);
+        mole.y = Math.random() * (canvasElement.height - mole.size);
+        mole.visible = true;
+        setTimeout(spawnMole, 1500);
+    }
+
+    async function gameLoop() {
+        const results = await handLandmarker.detectForVideo(video, performance.now());
+        canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height);
+
+        if (mole.visible) {
+            canvasCtx.fillStyle = "#ff4b2b";
+            canvasCtx.beginPath();
+            canvasCtx.arc(mole.x + mole.size / 2, mole.y + mole.size / 2, mole.size / 2, 0, 2 * Math.PI);
+            canvasCtx.fill();
+        }
+
+        if (results.landmarks.length > 0) {
+            const hand = results.landmarks[0][8]; // Index vingerpunt
+            const handX = (1 - hand.x) * canvasElement.width;
+            const handY = hand.y * canvasElement.height;
+
+            canvasCtx.fillStyle = "#00f2fe";
+            canvasCtx.beginPath();
+            canvasCtx.arc(handX, handY, 20, 0, 2 * Math.PI);
+            canvasCtx.fill();
+
+            if (mole.visible && handX > mole.x && handX < mole.x + mole.size && handY > mole.y && handY < mole.y + mole.size) {
+                score++;
+                scoreDisplay.textContent = `Score: ${score}`;
+                mole.visible = false;
+            }
+        }
+
+        if (webcamRunning) {
+            requestAnimationFrame(gameLoop);
+        }
+    }
+
+    createHandLandmarker();
+    startButton.addEventListener("click", startGame);
+</script>
+</body>
+</html>

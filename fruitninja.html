@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fruit Ninja Handgebaren</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #ff9f1c, #ff4040);
+            color: #fff;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        h1 {
+            font-size: 3em;
+            margin-bottom: 20px;
+            text-shadow: 2px 2px 5px rgba(0, 0, 0, 0.3);
+        }
+
+        button, .back-button {
+            background: linear-gradient(45deg, #ff9f1c, #ff4040);
+            border: none;
+            border-radius: 8px;
+            color: white;
+            font-size: 1.2em;
+            padding: 15px 30px;
+            margin: 10px;
+            cursor: pointer;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        button:hover, .back-button:hover {
+            transform: scale(1.1);
+            box-shadow: 0 8px 12px rgba(0, 0, 0, 0.4);
+        }
+
+        .game-container {
+            position: relative;
+        }
+
+        #webcam {
+            transform: scaleX(-1);
+            display: block;
+            border-radius: 10px;
+        }
+
+        #output_canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            pointer-events: none;
+        }
+
+        .score {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            font-size: 2em;
+            color: #fff;
+        }
+    </style>
+</head>
+<body>
+<div>
+    <h1>Fruit Ninja Handgebaren</h1>
+    <div>
+        <button id="webcamButton">Start Spel</button>
+        <a href="index.html" class="back-button">Terug naar Home</a>
+    </div>
+    <div class="game-container">
+        <video id="webcam" autoplay playsinline></video>
+        <canvas id="output_canvas"></canvas>
+        <div class="score" id="score">Score: 0</div>
+    </div>
+</div>
+
+<script type="module">
+    import { HandLandmarker, FilesetResolver } from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.18";
+
+    const enableWebcamButton = document.getElementById("webcamButton");
+    const video = document.getElementById("webcam");
+    const canvasElement = document.getElementById("output_canvas");
+    const canvasCtx = canvasElement.getContext("2d");
+    const scoreElement = document.getElementById("score");
+
+    let handLandmarker;
+    let webcamRunning = false;
+    let fruits = [];
+    let score = 0;
+
+    async function createHandLandmarker() {
+        const vision = await FilesetResolver.forVisionTasks("https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.0/wasm");
+        handLandmarker = await HandLandmarker.createFromOptions(vision, {
+            baseOptions: {
+                modelAssetPath: `https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task`,
+                delegate: "GPU"
+            },
+            runningMode: "VIDEO",
+            numHands: 2
+        });
+        console.log("Model geladen, klik op Start Spel om te beginnen.");
+        enableWebcamButton.addEventListener("click", enableCam);
+    }
+
+    function enableCam() {
+        webcamRunning = true;
+        navigator.mediaDevices.getUserMedia({ video: true }).then((stream) => {
+            video.srcObject = stream;
+            video.addEventListener("loadeddata", () => {
+                canvasElement.width = video.videoWidth;
+                canvasElement.height = video.videoHeight;
+                spawnFruits();
+                gameLoop();
+            });
+        });
+    }
+
+    function spawnFruits() {
+        setInterval(() => {
+            const fruit = {
+                x: Math.random() * canvasElement.width,
+                y: canvasElement.height + 50,
+                radius: 30,
+                speed: 4 + Math.random() * 3
+            };
+            fruits.push(fruit);
+        }, 1000);
+    }
+
+    async function gameLoop() {
+        canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height);
+        drawFruits();
+        detectHands();
+
+        if (webcamRunning) {
+            requestAnimationFrame(gameLoop);
+        }
+    }
+
+    function drawFruits() {
+        fruits.forEach((fruit, index) => {
+            fruit.y -= fruit.speed;
+            canvasCtx.beginPath();
+            canvasCtx.arc(fruit.x, fruit.y, fruit.radius, 0, 2 * Math.PI);
+            canvasCtx.fillStyle = "#ff4040";
+            canvasCtx.fill();
+
+            if (fruit.y + fruit.radius < 0) {
+                fruits.splice(index, 1);
+            }
+        });
+    }
+
+    async function detectHands() {
+        const results = await handLandmarker.detectForVideo(video, performance.now());
+        if (results.landmarks) {
+            results.landmarks.forEach(hand => {
+                const indexFinger = hand[8];  // Indexvinger punt
+                const x = (1 - indexFinger.x) * canvasElement.width;
+                const y = indexFinger.y * canvasElement.height;
+
+                checkSlice(x, y);
+
+                canvasCtx.beginPath();
+                canvasCtx.arc(x, y, 10, 0, 2 * Math.PI);
+                canvasCtx.fillStyle = "#00ff00";
+                canvasCtx.fill();
+            });
+        }
+    }
+
+    function checkSlice(x, y) {
+        fruits.forEach((fruit, index) => {
+            const dist = Math.hypot(fruit.x - x, fruit.y - y);
+            if (dist < fruit.radius) {
+                fruits.splice(index, 1);
+                score += 10;
+                scoreElement.textContent = `Score: ${score}`;
+            }
+        });
+    }
+
+    createHandLandmarker();
+</script>
+</body>
+</html>

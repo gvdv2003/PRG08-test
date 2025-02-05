@@ -4,6 +4,9 @@
 <div id="label-container"></div>
 <div id="emoji-container"></div>
 
+<!-- Terug naar Home knop -->
+<button class="back-button" onclick="window.location.href='index.html'">Terug naar Home</button>
+
 <!-- Confetti Library toevoegen -->
 <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
 
@@ -66,14 +69,10 @@
             }
         }
 
-        // Debug log om te checken wat het model voorspelt
-        console.log("Voorspelling:", highestPrediction.className, highestPrediction.probability);
-
         const emojiContainer = document.getElementById('emoji-container');
 
         if (highestPrediction.className.toLowerCase() === 'thumbs up' && highestPrediction.probability > 0.8) {
             emojiContainer.innerHTML = '😊';
-
             if (!confettiTriggered) {
                 confettiTriggered = true;
                 startConfetti();
@@ -88,13 +87,13 @@
     }
 
     function startConfetti() {
-        const duration = 3 * 1000;
+        const duration = 1;
         const end = Date.now() + duration;
 
         (function frame() {
             confetti({
                 particleCount: 5,
-                spread: 90,
+                spread: 45,
                 origin: { y: 0.3 }
             });
 
@@ -135,11 +134,20 @@
         cursor: pointer;
         transition: background-color 0.3s ease, transform 0.2s ease;
         box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        margin: 10px;
     }
 
     button:hover {
         background-color: #3d8b7e;
         transform: scale(1.05);
+    }
+
+    .back-button {
+        background-color: #ff6b6b;
+    }
+
+    .back-button:hover {
+        background-color: #e55a5a;
     }
 
     #webcam-container {

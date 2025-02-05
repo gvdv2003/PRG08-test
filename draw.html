@@ -27,7 +27,7 @@
         }
 
         /* Knoppen */
-        button {
+        button, .back-button {
             background: linear-gradient(45deg, #ff69b4, #40e0d0);
             border: none;
             border-radius: 8px;
@@ -38,14 +38,16 @@
             cursor: pointer;
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
             transition: all 0.3s ease;
+            text-decoration: none; /* Zorgt ervoor dat de link eruitziet als een knop */
+            display: inline-block;
         }
 
-        button:hover {
+        button:hover, .back-button:hover {
             transform: scale(1.1);
             box-shadow: 0 8px 12px rgba(0, 0, 0, 0.4);
         }
 
-        button:active {
+        button:active, .back-button:active {
             transform: scale(1);
         }
 
@@ -83,6 +85,7 @@
     <div>
         <button id="webcamButton">Start Webcam</button>
         <button id="clearButton">Canvas Wissen</button>
+        <a href="index.html" class="back-button">Terug naar Home</a>
     </div>
 
     <!-- Video- en canvasweergave -->
@@ -106,8 +109,6 @@
     let webcamRunning = false;
     let results = undefined;
 
-    // Handkleuren: eerste hand = roze, tweede hand = turquoise
-    const handColors = ["#FF69B4", "#40E0D0"];
     const previousPositions = [{}, {}];  // Om de vorige positie van elke hand bij te houden
 
     /********************************************************************
@@ -147,6 +148,7 @@
             });
         });
     }
+
     /********************************************************************
      // PREDICT HANDS AND DRAW SPLATOON EFFECT (met pols als centrum)
      ********************************************************************/
@@ -155,17 +157,14 @@
 
         if (results.landmarks) {
             results.landmarks.forEach((hand, index) => {
-                // Geef de eerste hand altijd roze en de tweede hand altijd turquoise
-                const color = (index === 0) ? "#FF69B4" : "#40E0D0"; // Roze voor links, turquoise voor rechts
+                const color = (index === 0) ? "#FF69B4" : "#40E0D0"; // Roze voor eerste hand, turquoise voor tweede
 
-                // De pols is meestal het eerste punt in de hand landmarks
-                const wrist = hand[0]; // Pols is altijd het eerste punt
+                const wrist = hand[0];
                 const x = (1 - wrist.x) * canvasElement.width;
                 const y = wrist.y * canvasElement.height;
 
-                // Zorg dat de beweging wordt getekend door lijnen te trekken tussen de vorige en huidige positie van de pols
                 const previous = previousPositions[index];
-                if (previous) {
+                if (previous.x !== undefined && previous.y !== undefined) {
                     canvasCtx.strokeStyle = color;
                     canvasCtx.lineWidth = 50;
                     canvasCtx.lineCap = "round";
@@ -175,12 +174,10 @@
                     canvasCtx.stroke();
                 }
 
-                // Sla de huidige polspositie op voor de volgende frame
                 previousPositions[index] = { x, y };
             });
         }
 
-        // Zorg ervoor dat we door blijven gaan met het voorspellen van de handen
         if (webcamRunning) {
             window.requestAnimationFrame(predictWebcam);
         }
@@ -195,10 +192,7 @@
         previousPositions[1] = {};
     }
 
-
-    createHandLandmarker();  // Deze functie wordt eenmaal aangeroepen om alles te initialiseren
-
-
+    createHandLandmarker();
 </script>
 </body>
 </html>
